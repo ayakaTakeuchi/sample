@@ -1,0 +1,394 @@
+package com.example.x14079xx.winf_android;
+
+import android.content.Context;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
+import android.widget.ListView;
+import android.widget.Toast;
+import android.widget.ArrayAdapter;
+//ジャイロセンサー
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+
+import android.util.Log;
+import android.widget.TextView;
+
+import android.os.SystemClock;
+import android.widget.Chronometer;
+import android.os.Vibrator;
+
+import android.os.AsyncTask;
+
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+import com.android.volley.toolbox.JsonObjectRequest;
+import java.util.Timer;
+import java.util.TimerTask;
+
+
+import java.io.ByteArrayOutputStream;
+import java.util.HashMap;
+import java.util.Map;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import android.telephony.TelephonyManager;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+public class MainActivity extends AppCompatActivity implements SensorEventListener {
+
+    private SensorManager sensorManager;
+    private TextView textView;
+    private ListView listView;
+    private float sensorX;
+    private float sensorY;
+    private float sensorZ;
+    private boolean flg = true;
+    private ArrayAdapter adapter;
+
+
+    private Button readButton, editButton;
+
+    //timer
+    private Chronometer chronometer;
+    long startTime = 0;
+    long time = 0;
+    double time2 = 0;
+    String deviceId;
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+
+
+        //Ipad();
+        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+
+        textView = (TextView) findViewById(R.id.text_view);
+
+        //chronometer = (Chronometer) findViewById(R.id.chronometer);
+
+
+        TelephonyManager telMgr = (TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE);
+        deviceId = telMgr.getDeviceId();
+
+
+        //ip();
+
+
+
+    }
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Listenerの登録
+        Sensor accel = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+
+        sensorManager.registerListener(this, accel, SensorManager.SENSOR_DELAY_NORMAL);
+        //rereadVolley();
+
+    }
+
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Listenerを解除
+        sensorManager.unregisterListener(this);
+    }
+
+
+    //String stime;
+    float[] dates = new float[30];
+    float ave,sum=0;
+    int count=0;
+    int datem=0,datem2=0;//見ているか判断
+
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+
+
+
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+
+
+                sensorX = event.values[0];
+                sensorY = event.values[1];
+                sensorZ = event.values[2];
+
+                String strTmp = "加速度センサー\n"
+                        + " X: " + sensorX + "\n"
+                        + " Y: " + sensorY + "\n"
+                        + " Z: " + sensorZ;
+                textView.setText(strTmp);
+
+            //sensorZを仕分ける
+            if(sensorZ<4.0){
+                datem=0;//見ていない
+            }else{
+                datem=1;//
+            }
+
+            sum += datem;
+
+                    if(count==30) {
+                        ave=sum/30;
+                        sum = 0;
+                        count=0;
+                        startVolley();
+
+                        //datem=1下見ている
+                        if(ave<=0.5){
+                            datem2=1;
+                        }else{
+                            datem2=2;
+                        }
+                    }
+
+            }
+        count++;
+
+
+        Log.v("sensorZ",""+sensorZ);
+        //Log.v("count",""+count);
+        //Log.v("sum",""+sum);
+        //Log.v("ave",""+ave);
+        //Log.v("datem2",""+datem2);
+        //Log.v("id",""+deviceId);
+        //Log.v("i",""+String.valueOf(i));
+        //Log.v("date",""+toString()[]);
+    }
+
+
+
+
+    /*
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+
+
+        startVolley();
+
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            sensorX = event.values[0];
+            sensorY = event.values[1];
+            sensorZ = event.values[2];
+
+            String strTmp = "加速度センサー\n"
+                    + " X: " + sensorX + "\n"
+                    + " Y: " + sensorY + "\n"
+                    + " Z: " + sensorZ;
+            textView.setText(strTmp);
+
+
+            sum = 0;
+            for(int i = 0; i < 30; i++) {
+                dates[i]= sensorY;
+                sum +=dates[i];
+                Log.v("date",""+dates[i]);
+            }
+            ave=sum/30;
+
+
+
+
+            if (sensorY < -6) {
+
+                //chronometer.setBase(SystemClock.elapsedRealtime());
+                chronometer.start();
+
+
+                flgg = true;
+
+            } else if (sensorY >= -6) {
+                if (flgg == true) {
+                    //stopTime=SystemClock.elapsedRealtime();
+                    chronometer.stop();
+                    chronometer.setBase(SystemClock.elapsedRealtime());
+                    startTime = SystemClock.elapsedRealtime();
+                }
+            }
+
+            if (startTime > 0) {
+                time = SystemClock.elapsedRealtime() - startTime;
+                time2 = time/1000.00;
+                //time = chronometer.getBase();
+                Log.v("time", "" + time2);
+            }
+
+            //１０秒後にバイブレーション
+            if (time > 10000) {//１秒＝１０００
+                ((Vibrator) getSystemService(Context.VIBRATOR_SERVICE)).vibrate(1000);
+
+            }
+
+
+
+
+            //stime = String.valueOf(time);
+
+        }
+    }
+    */
+
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+
+    }
+
+
+
+    /*
+    //IPアドレス取得
+    String ip;
+    public void ip(){
+    try
+    {
+        // 自端末のInetAddressを取得
+        InetAddress ia = java.net.InetAddress.getLocalHost();
+        String ip = ia.getHostAddress();
+        // 取得した情報をログに出力
+        //System.out.println("getHostAddress = [" + testIP.getHostAddress() + "]");    // IPアドレス
+        //hostad = String.valueOf(testIP.getHostAddress());
+        Log.v("aa",""+ip);
+        Log.v("aa","");
+        System.out.println("IPアドレス：" + ip);
+        System.out.println("getHostAddress = [" + ia.getHostAddress() + "]");
+        System.out.println("getLocalHost   = [" + ia.toString() + "]");
+
+
+    } catch(UnknownHostException e1) {
+        e1.printStackTrace();
+    }
+
+
+}
+*/
+
+    /*Volleyを起動データがあれば読み込みを開始
+    データ受け取る*/
+    /*
+    private void rereadVolley() {
+
+        //サーバーのアドレス
+        String GET_URL="http://localhost:8888/read.php";
+
+        //Volleyによる通信開始　（GETかPOST、サーバーのURL、受信メゾット、エラーメゾット）
+        RequestQueue getQueue=Volley.newRequestQueue(this);
+        JsonObjectRequest mRequest = new JsonObjectRequest(Request.Method.GET,GET_URL,
+
+                // 通信成功
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        //リストを更新する
+                        ChangeListView(response);
+                    }
+                },
+
+                // 通信失敗
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(MainActivity.this,"通信に失敗しました。",Toast.LENGTH_SHORT).show();
+                    }
+                }
+        );
+
+        getQueue.add(mRequest);
+    }
+
+
+
+    private void ChangeListView(JSONObject response) {
+
+        try {
+
+            //Jsonデータを取得
+            JSONArray count=  response.getJSONArray("SQL_TEST");
+            adapter.clear();
+
+            //Jsonデータからリストを作成
+            for (int i=0;i<count.length();i++){
+//data
+                JSONObject data=count.getJSONObject(i);
+                adapter.add(data.getString("name")+"\n"+data.get("text"));
+            }
+
+            listView.setAdapter(adapter);
+            adapter.notifyDataSetChanged();
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+*/
+
+
+
+    private  void startVolley() {
+        //queue
+        RequestQueue postQueue = Volley.newRequestQueue(this);
+        //URL
+        //String POST_URL = "http://192.168.101.41:8888/edit.php";
+        //String POST_URL = "http://192.168.11.11:8888/edit.php";
+        String POST_URL = "http://192.168.101.71:8888/edit.php";
+
+        StringRequest stringReq = new StringRequest(Request.Method.POST, POST_URL,
+
+                //通信成功
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String s) {
+                        Toast.makeText(MainActivity.this, "通信に成功しました。", Toast.LENGTH_SHORT).show();
+                    }
+                },
+
+                //通信失敗
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(MainActivity.this, "通信に失敗しました。", Toast.LENGTH_SHORT).show();
+                        //Log.v("tama","aaaaaaaaaaaaa");
+                    }
+                }) {
+
+
+            //送信するデータを設定
+            @Override
+            protected Map<String, String> getParams() {
+
+                //今回は[名前]と[内容]を設定
+                Map<String, String> params = new HashMap<String, String>();
+                params.put("Fast",String.valueOf(deviceId));//id
+                params.put("Second",String.valueOf(datem2));//sensor
+                return params;
+            }
+
+
+        };
+        postQueue.add(stringReq);
+    }
+
+}

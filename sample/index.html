@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <link href="./clock.css" rel="stylesheet">
+<title>Sample</title>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+<script type="text/javascript">
+// var array = [];
+var n=2;
+// var count=0;
+//データ受け取り部分
+$(function loadfunc(){
+ setInterval(function(){
+   $.ajax({
+     type:'GET',
+     url:'read.php',
+     dataType:'json',
+     cache : false,
+     scriptCharset:'utf-8',
+   }).done(function(pose, dataType) {
+     if(pose == null) alert('データが0件でした');
+     // array[count] = pose[pose.length-1].data;
+     // count++;
+     //単純に数値を表示
+     document.write(JSON.stringify(pose[pose.length-1])+"<br/>");
+     // showImage();
+     // success: function(pose){
+
+            // var results = pose[pose,length-1].data;
+            // showImage(results);
+         // }
+     //document.write(JSON.stringify(array[count])+"<br/>");
+   }).fail(function(XMLHttpRequest, textStatus, errorThrown) {
+     alert('Error : ' + errorThrown);
+   });
+ },3000);
+});
+
+function ShowImage(){
+  /*console.log("show");
+    if(n == 2){
+	   var blinking = document.getElementById('blinking');
+   setInterval(function() {
+      blinking.style.display = (blinking.style.display == 'none' ? '' : 'none');
+   }, 950);*/
+     document.getElementById("pic").src = "/Users/x15064xx/Desktop/ブラウザに喋らせるテスト/M100Y100-E60012.gif";
+	   document.getElementById("mov").src = "/Users/x15064xx/Desktop/ブラウザに喋らせるテスト/警報09.mp3";
+        // } else {
+        //
+        // }
+      }
+
+</script>
+</head>
+<!-- <body onload="ShowImage();"> -->
+<body onload="ShowImage();">
+<div id="blinking">
+  <p>
+  <img id="pic">
+  <audio id="mov" autoplay loop></audio>
+  </p>
+</div>
+</body>
+</html>
